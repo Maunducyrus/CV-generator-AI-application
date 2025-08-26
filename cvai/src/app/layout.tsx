@@ -3,17 +3,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ReactNode } from 'react';
 import Providers from '@/components/providers';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { SignOut } from '@/components/session-actions';
+import NavAuth from '@/components/nav-auth';
 
 export const metadata: Metadata = {
   title: 'CV AI Builder',
   description: 'AI-powered CV and cover letter generator'
 };
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const session = await getServerSession(authOptions);
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
@@ -25,14 +22,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <nav className="flex items-center gap-4 text-sm">
                   <Link href="/builder" className="hover:text-brand">Builder</Link>
                   <Link href="/documents" className="hover:text-brand">Documents</Link>
-                  {session?.user ? (
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-600">{session.user.name ?? session.user.email}</span>
-                      <SignOut />
-                    </div>
-                  ) : (
-                    <Link href="/signin" className="hover:text-brand">Sign in</Link>
-                  )}
+                  <NavAuth />
                 </nav>
               </div>
             </header>

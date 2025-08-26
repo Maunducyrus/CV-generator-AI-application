@@ -34,7 +34,6 @@ export default function DocumentsPage() {
             <div className="flex items-center gap-3 text-sm">
               <Link className="text-brand" href={`/builder?id=${d.id}`}>Open</Link>
               <button className="text-gray-700" onClick={() => onShare(d.id)}>Share</button>
-              <Link className="text-gray-700" href={`/s/${d.token ?? ''}`}></Link>
             </div>
           </div>
         ))}

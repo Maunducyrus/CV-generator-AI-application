@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { Input, Label, Textarea, Section } from '@/components/inputs';
 import { clsx } from 'clsx';
@@ -26,6 +26,14 @@ export type CvForm = {
 const steps = ['Personal', 'Education', 'Experience', 'Skills', 'Projects', 'Review'];
 
 export default function BuilderPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-6xl px-4 py-8">Loading builder…</div>}>
+      <BuilderContent />
+    </Suspense>
+  );
+}
+
+function BuilderContent() {
   const [step, setStep] = useState(0);
   const [preview, setPreview] = useState<string>('');
   const [docId, setDocId] = useState<string | null>(null);

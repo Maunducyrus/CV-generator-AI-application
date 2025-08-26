@@ -4,6 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { Input, Label, Textarea, Section } from '@/components/inputs';
 import { clsx } from 'clsx';
 import { useSearchParams } from 'next/navigation';
+import Button from '@/components/ui/Button';
 
 export type CvForm = {
   personal: {
@@ -27,7 +28,7 @@ const steps = ['Personal', 'Education', 'Experience', 'Skills', 'Projects', 'Rev
 
 export default function BuilderPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-6xl px-4 py-8">Loading builder…</div>}>
+    <Suspense fallback={<div className="container py-8">Loading builder…</div>}>
       <BuilderContent />
     </Suspense>
   );
@@ -106,18 +107,18 @@ function BuilderContent() {
   const exportUrl = (fmt: 'pdf' | 'docx' | 'txt') => (docId ? `/api/export/${fmt}/${docId}` : '#');
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 grid lg:grid-cols-2 gap-6">
+    <div className="container py-8 grid lg:grid-cols-2 gap-6">
       <div className="grid gap-4">
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
           {steps.map((label, i) => (
-            <button key={i} onClick={() => setStep(i)} className={clsx('px-3 py-1 rounded border', i === step && 'bg-brand text-white border-brand')}>
+            <button key={i} onClick={() => setStep(i)} className={clsx('px-3 py-1.5 rounded-full border', i === step ? 'bg-brand text-white border-brand' : 'hover:bg-gray-50')}>
               {label}
             </button>
           ))}
         </div>
 
         {step === 0 && (
-          <Section title="Personal Information" action={<button className="text-sm text-brand" onClick={onSuggestSummary}>Suggest summary</button>}>
+          <Section title="Personal Information" action={<Button variant="ghost" size="sm" onClick={onSuggestSummary}>Suggest summary</Button>}>
             <div>
               <Label htmlFor="personal.fullName">Full Name</Label>
               <Input id="personal.fullName" {...register('personal.fullName')} placeholder="John Doe" />
@@ -175,7 +176,7 @@ function BuilderContent() {
                 </div>
               </div>
             ))}
-            <button className="text-sm text-brand" onClick={() => education.append({} as any)}>+ Add education</button>
+            <Button variant="ghost" size="sm" onClick={() => education.append({} as any)}>+ Add education</Button>
           </Section>
         )}
 
@@ -209,7 +210,7 @@ function BuilderContent() {
                 </div>
               </div>
             ))}
-            <button className="text-sm text-brand" onClick={() => experience.append({} as any)}>+ Add experience</button>
+            <Button variant="ghost" size="sm" onClick={() => experience.append({} as any)}>+ Add experience</Button>
           </Section>
         )}
 
@@ -227,7 +228,7 @@ function BuilderContent() {
                 </div>
               </div>
             ))}
-            <button className="text-sm text-brand" onClick={() => skills.append({ category: '', items: '' })}>+ Add skills</button>
+            <Button variant="ghost" size="sm" onClick={() => skills.append({ category: '', items: '' })}>+ Add skills</Button>
           </Section>
         )}
 
@@ -249,7 +250,7 @@ function BuilderContent() {
                 </div>
               </div>
             ))}
-            <button className="text-sm text-brand" onClick={() => projects.append({ name: '' })}>+ Add project</button>
+            <Button variant="ghost" size="sm" onClick={() => projects.append({ name: '' })}>+ Add project</Button>
           </Section>
         )}
 
@@ -262,9 +263,9 @@ function BuilderContent() {
                 <Textarea id="job" value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={4} placeholder="Paste a job description to tailor your CV" />
               </div>
               <div className="flex gap-3 flex-wrap">
-                <button className="px-4 py-2 rounded-md bg-brand text-white" onClick={handleSubmit(onGenerateCV)}>Generate CV</button>
-                <button className="px-4 py-2 rounded-md border" onClick={onTailorToJob}>Tailor to Job</button>
-                <button className="px-4 py-2 rounded-md border" onClick={onSave}>Save</button>
+                <Button onClick={handleSubmit(onGenerateCV)}>Generate CV</Button>
+                <Button variant="secondary" onClick={onTailorToJob}>Tailor to Job</Button>
+                <Button variant="secondary" onClick={onSave}>Save</Button>
                 {docId && (
                   <>
                     <a className="px-4 py-2 rounded-md border" href={exportUrl('pdf')}>Export PDF</a>
@@ -278,13 +279,15 @@ function BuilderContent() {
         )}
       </div>
 
-      <div className="border rounded-lg p-4 bg-white">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium">Live Preview</h3>
-          <div className="text-sm text-gray-500">Template: Minimal</div>
-        </div>
-        <div className="prose max-w-none mt-4 whitespace-pre-wrap text-sm">
-          {preview || 'Your generated CV will appear here.'}
+      <div className="lg:sticky lg:top-16 h-fit">
+        <div className="rounded-xl border bg-white shadow-sm p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium">Live Preview</h3>
+            <div className="text-sm text-gray-500">Template: Minimal</div>
+          </div>
+          <div className="prose max-w-none mt-4 whitespace-pre-wrap text-sm">
+            {preview || 'Your generated CV will appear here.'}
+          </div>
         </div>
       </div>
     </div>

@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <header className="border-b sticky top-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur z-10">
               <div className="container py-3 flex items-center justify-between">
                 <Link href="/" className="font-semibold text-lg">CV AI</Link>
-                <nav className="flex items-center gap-4 text-sm">
+                <nav className="flex flex-wrap items-center gap-2 md:gap-4 text-sm">
                   <Link href="/builder" className="hover:text-brand">Builder</Link>
                   <Link href="/documents" className="hover:text-brand">Documents</Link>
                   <ThemeToggle />

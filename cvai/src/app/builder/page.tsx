@@ -39,6 +39,13 @@ function BuilderContent() {
   const [preview, setPreview] = useState<string>('');
   const [docId, setDocId] = useState<string | null>(null);
   const [jobDescription, setJobDescription] = useState<string>('');
+  const [templateKey, setTemplateKey] = useState<string>('minimal');
+  const [tone, setTone] = useState<string>('professional');
+  const [coverLetter, setCoverLetter] = useState<string>('');
+  const [atsScore, setAtsScore] = useState<number | null>(null);
+  const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
+  const [skillsSuggestions, setSkillsSuggestions] = useState<string[]>([]);
+
   const sp = useSearchParams();
 
   const { control, register, handleSubmit, watch, reset } = useForm<CvForm>({
@@ -63,6 +70,7 @@ function BuilderContent() {
         setDocId(id);
         try { reset(JSON.parse(j.content)); } catch { /* ignore */ }
         setPreview(j.content);
+        setTemplateKey(j.templateKey ?? 'minimal');
       }
     })();
   }, [sp, reset]);
@@ -73,7 +81,7 @@ function BuilderContent() {
   const projects = useFieldArray({ control, name: 'projects' });
 
   const onGenerateCV = async (data: CvForm) => {
-    const res = await fetch('/api/ai/generate-cv', { method: 'POST', body: JSON.stringify(data) });
+    const res = await fetch('/api/ai/generate-cv', { method: 'POST', body: JSON.stringify({ ...data, templateKey }) });
     const json = await res.json();
     setPreview(json.markdown ?? '');
   };
@@ -87,17 +95,37 @@ function BuilderContent() {
 
   const onTailorToJob = async () => {
     const data = watch();
-    const res = await fetch('/api/ai/generate-cv', { method: 'POST', body: JSON.stringify({ ...data, jobDescription }) });
+    const res = await fetch('/api/ai/generate-cv', { method: 'POST', body: JSON.stringify({ ...data, jobDescription, templateKey }) });
     const json = await res.json();
     setPreview(json.markdown ?? '');
+  };
+
+  const onGenerateCoverLetter = async () => {
+    const data = watch();
+    const res = await fetch('/api/ai/cover-letter', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ candidate: data, jobDescription, tone }) });
+    const json = await res.json();
+    setCoverLetter(json.letter ?? '');
+  };
+
+  const onComputeAts = async () => {
+    const res = await fetch('/api/ai/ats-score', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ resumeText: preview, jobDescription }) });
+    const json = await res.json();
+    setAtsScore(json.score ?? null);
+    setMissingKeywords(Array.isArray(json.missingKeywords) ? json.missingKeywords : []);
+  };
+
+  const onSkillsGap = async () => {
+    const res = await fetch('/api/ai/skills-gap', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ resumeText: preview, jobDescription }) });
+    const json = await res.json();
+    setSkillsSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
   };
 
   const onSave = async () => {
     const payload = JSON.stringify(watch());
     if (docId) {
-      await fetch(`/api/documents/${docId}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: watch().personal.fullName || 'CV', content: payload, templateKey: 'minimal', language: 'en' }) });
+      await fetch(`/api/documents/${docId}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: watch().personal.fullName || 'CV', content: payload, templateKey, language: 'en' }) });
     } else {
-      const res = await fetch('/api/documents', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: watch().personal.fullName || 'CV', content: payload }) });
+      const res = await fetch('/api/documents', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: watch().personal.fullName || 'CV', content: payload, templateKey }) });
       const j = await res.json();
       setDocId(j.id);
     }
@@ -119,11 +147,11 @@ function BuilderContent() {
 
         {step === 0 && (
           <Section title="Personal Information" action={<Button variant="ghost" size="sm" onClick={onSuggestSummary}>Suggest summary</Button>}>
-            <div>
-              <Label htmlFor="personal.fullName">Full Name</Label>
-              <Input id="personal.fullName" {...register('personal.fullName')} placeholder="John Doe" />
-            </div>
             <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label htmlFor="personal.fullName">Full Name</Label>
+                <Input id="personal.fullName" {...register('personal.fullName')} placeholder="John Doe" />
+              </div>
               <div>
                 <Label htmlFor="personal.title">Title</Label>
                 <Input id="personal.title" {...register('personal.title')} placeholder="Software Engineer" />
@@ -132,8 +160,6 @@ function BuilderContent() {
                 <Label htmlFor="personal.email">Email</Label>
                 <Input id="personal.email" {...register('personal.email')} placeholder="john@example.com" />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="personal.phone">Phone</Label>
                 <Input id="personal.phone" {...register('personal.phone')} placeholder="+1 555 123" />
@@ -142,10 +168,10 @@ function BuilderContent() {
                 <Label htmlFor="personal.address">Address</Label>
                 <Input id="personal.address" {...register('personal.address')} placeholder="City, Country" />
               </div>
-            </div>
-            <div>
-              <Label htmlFor="personal.summary">Summary</Label>
-              <Textarea id="personal.summary" {...register('personal.summary')} rows={4} placeholder="Brief professional summary" />
+              <div className="col-span-2">
+                <Label htmlFor="personal.summary">Summary</Label>
+                <Textarea id="personal.summary" {...register('personal.summary')} rows={4} placeholder="Brief professional summary" />
+              </div>
             </div>
           </Section>
         )}
@@ -256,15 +282,36 @@ function BuilderContent() {
 
         {step === 5 && (
           <Section title="Review & Generate">
-            <p className="text-sm text-gray-600">Review your inputs and generate your AI-optimized CV. You can also export later.</p>
+            <p className="text-sm text-gray-600">Review your inputs and generate your AI-optimized CV and cover letter. You can also export later.</p>
             <div className="grid gap-3">
-              <div>
-                <Label htmlFor="job">Job description (optional)</Label>
-                <Textarea id="job" value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={4} placeholder="Paste a job description to tailor your CV" />
+              <div className="grid md:grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="template">Template</Label>
+                  <select id="template" className="w-full rounded-md border px-3 py-2 text-sm" value={templateKey} onChange={(e) => setTemplateKey(e.target.value)}>
+                    <option value="minimal">Minimal</option>
+                    <option value="modern">Modern</option>
+                    <option value="professional">Professional</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="tone">Cover letter tone</Label>
+                  <select id="tone" className="w-full rounded-md border px-3 py-2 text-sm" value={tone} onChange={(e) => setTone(e.target.value)}>
+                    <option value="professional">Professional</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="persuasive">Persuasive</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="job">Job description (optional)</Label>
+                  <Textarea id="job" value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={3} placeholder="Paste a job description to tailor your CV" />
+                </div>
               </div>
               <div className="flex gap-3 flex-wrap">
                 <Button onClick={handleSubmit(onGenerateCV)}>Generate CV</Button>
                 <Button variant="secondary" onClick={onTailorToJob}>Tailor to Job</Button>
+                <Button variant="secondary" onClick={onGenerateCoverLetter}>Generate Cover Letter</Button>
+                <Button variant="secondary" onClick={onComputeAts}>ATS Score</Button>
+                <Button variant="secondary" onClick={onSkillsGap}>Skills Gap</Button>
                 <Button variant="secondary" onClick={onSave}>Save</Button>
                 {docId && (
                   <>
@@ -274,6 +321,22 @@ function BuilderContent() {
                   </>
                 )}
               </div>
+              {(atsScore !== null || skillsSuggestions.length > 0) && (
+                <div className="rounded-lg border p-3 text-sm">
+                  {atsScore !== null && (
+                    <div className="mb-2">ATS Score: <span className="font-semibold">{atsScore}</span>{missingKeywords.length ? ` • Missing: ${missingKeywords.join(', ')}` : ''}</div>
+                  )}
+                  {skillsSuggestions.length > 0 && (
+                    <div>Skills to add: {skillsSuggestions.join(', ')}</div>
+                  )}
+                </div>
+              )}
+              {coverLetter && (
+                <div className="rounded-lg border p-3">
+                  <h4 className="font-medium">Cover Letter</h4>
+                  <div className="prose max-w-none mt-2 whitespace-pre-wrap text-sm">{coverLetter}</div>
+                </div>
+              )}
             </div>
           </Section>
         )}
@@ -283,7 +346,7 @@ function BuilderContent() {
         <div className="rounded-xl border bg-white shadow-sm p-4">
           <div className="flex items-center justify-between">
             <h3 className="font-medium">Live Preview</h3>
-            <div className="text-sm text-gray-500">Template: Minimal</div>
+            <div className="text-sm text-gray-500">Template: {templateKey[0].toUpperCase() + templateKey.slice(1)}</div>
           </div>
           <div className="prose max-w-none mt-4 whitespace-pre-wrap text-sm">
             {preview || 'Your generated CV will appear here.'}
